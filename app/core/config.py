@@ -1,10 +1,12 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class Settings(BaseSettings):
 
+class Settings(BaseSettings):
     APP_NAME: str = "Cognexa"
-    APP_ENV: str = "development"
-    DEBUG: bool = True
+    APP_ENV: str = "production"
+    DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
     CORS_ALLOWED_ORIGINS: str = ""
 
@@ -25,9 +27,10 @@ class Settings(BaseSettings):
     CHROMA_PERSIST_DIRECTORY: str = "./chroma_db"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-settings = Settings()
+
+# Local development continues to use .env by default. Tests and isolated
+# deployments may point this at a different file without changing directories.
+settings = Settings(_env_file=os.environ.get("COGNEXA_SETTINGS_FILE", ".env"))

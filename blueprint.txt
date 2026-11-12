@@ -1,0 +1,29 @@
+Cognexa Blueprint: Enterprise AI Research Assistant
+Product direction finalized
+Version 1.0
+Pre-development specification
+
+Project codename: Cognexa
+Product category: Enterprise Generative AI / Knowledge Intelligence
+Frontend: Next.js + React + TypeScript
+Backend: Python + FastAPI
+AI orchestration: LangChain + LangGraph
+LLM strategy: Hybrid (Ollama + Groq API)
+Initial deployment strategy: Local development, followed by cloud deployment.
+
+We're going to approach this as a product development project with proper engineering documentation.
+
+The project will have two objectives:
+1. Build a genuinely usable document research product.
+2. Demonstrate your engineering ability across RAG, LangGraph, backend development, databases, evaluation and deployment.
+Document contents
+1. Product Requirements Document (PRD)
+2. Functional specifications
+3. System architecture
+4. LangGraph workflow
+5. Database schema
+6. API specifications
+7. Security and reliability requirements
+8. Development milestones
+9. Testing and acceptance criteria
+10. GitHub and portfolio deliverables

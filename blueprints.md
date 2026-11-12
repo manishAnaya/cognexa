@@ -1,0 +1,1172 @@
+# Cognexa — Turn Documents into Intelligence.
+## Product Requirements Document & Technical Architecture
+
+**Document Version:** 1.0  
+**Status:** Approved for Development Planning  
+**Product Type:** Enterprise AI Research Assistant  
+**Architecture:** Modular, API-first, multi-user SaaS-ready  
+**Primary Objective:** Build an evidence-grounded AI research platform using advanced Retrieval-Augmented Generation (RAG).
+
+---
+
+# 1. Product Overview
+
+## 1.1 Product Vision
+
+Cognexa is an intelligent document research platform that enables users to upload, organize, search and interact with large collections of documents using natural language.
+
+Unlike conventional chatbot applications, the system will retrieve information using multiple search strategies, rerank relevant evidence, validate whether sufficient information exists, and generate answers with verifiable source citations.
+
+The platform will also measure its own retrieval and answer-generation quality through automated evaluation.
+
+## 1.2 Problem Statement
+
+Organizations maintain large volumes of unstructured information in PDF reports, policies, contracts, technical documents, research papers and internal knowledge bases.
+
+Traditional keyword searches cannot understand semantic meaning, while ordinary LLM chatbots may produce inaccurate or fabricated answers.
+
+Our product addresses these problems through:
+
+- Semantic and keyword-based document retrieval.
+- Hybrid search and cross-encoder reranking.
+- Evidence-grounded answer generation.
+- Source-level citations.
+- Insufficient-evidence detection.
+- Persistent conversational memory.
+- Retrieval and generation quality evaluation.
+
+## 1.3 Target Users
+
+| User | Primary use case |
+|---|---|
+| Researchers | Research across multiple papers and reports |
+| Business analysts | Extract insights from business documents |
+| Developers | Search technical documentation |
+| HR teams | Query internal HR policies |
+| Finance teams | Analyze financial reports |
+| Students | Study and research uploaded materials |
+
+## 1.4 Product Differentiation
+
+Our competitive focus will be:
+
+1. More reliable retrieval than basic vector-only RAG.
+2. Transparent answers with traceable evidence.
+3. Rejection of unsupported questions.
+4. Measurable retrieval and answer quality.
+5. A polished interface with document and workspace management.
+6. Configurable local and cloud LLM providers.
+
+---
+
+# 2. Product Scope
+
+## 2.1 MVP – Must Have
+
+The first usable product will include:
+
+- User authentication.
+- User-specific workspaces.
+- Document upload and management.
+- PDF, DOCX, TXT, CSV and Markdown support.
+- Document extraction and chunking.
+- Embedding generation.
+- Chroma vector database.
+- BM25 keyword retrieval.
+- Hybrid retrieval with Reciprocal Rank Fusion.
+- Cross-encoder reranking.
+- LangGraph-based RAG workflow.
+- Evidence validation.
+- Grounded answer generation.
+- Source citations.
+- Conversation history.
+- Ollama and Groq integrations.
+- Basic analytics and evaluation.
+
+## 2.2 Version 2 – Advanced Features
+
+- RAGAS evaluation dashboard.
+- Multiple retrieval strategy comparisons.
+- Query rewriting.
+- Contextual compression.
+- Multi-document research.
+- Streaming responses.
+- Document-level permissions.
+- PostgreSQL-backed conversation persistence.
+- Advanced observability.
+- Docker deployment.
+- Automated CI/CD.
+
+## 2.3 Future Enterprise Features
+
+- Organization and team management.
+- Role-based access control.
+- SSO integration.
+- Multiple knowledge bases.
+- AWS S3 document storage.
+- Pinecone integration.
+- Amazon Bedrock integration.
+- Audit logs.
+- Document-level access policies.
+- Usage and cost management.
+- Enterprise administration.
+
+These features will be designed for in the architecture where practical, but we will not delay the MVP to implement every enterprise integration.
+
+---
+
+# 3. Functional Requirements
+
+## FR-01: User Authentication
+
+Users must be able to:
+
+- Register an account.
+- Log in and log out.
+- Reset passwords.
+- Maintain authenticated sessions.
+- Access only their authorized workspaces and documents.
+
+**Implementation:** FastAPI authentication, secure password hashing, JWT access tokens and refresh-token handling.
+
+## FR-02: Workspace Management
+
+Users can:
+
+- Create workspaces.
+- Rename workspaces.
+- Delete workspaces.
+- View documents belonging to a workspace.
+- Start conversations within a workspace.
+
+Every document and conversation must be associated with an authorized workspace.
+
+## FR-03: Document Management
+
+Supported formats:
+
+| Format | Extraction method |
+|---|---|
+| PDF | PyMuPDF / PyPDF |
+| DOCX | python-docx |
+| TXT | Text loader |
+| CSV | CSV loader |
+| Markdown | Markdown loader |
+
+Required functionality:
+
+- Single and multiple file uploads.
+- File size and extension validation.
+- Duplicate document detection.
+- Document processing status.
+- Metadata extraction.
+- Re-indexing.
+- Document deletion.
+- Processing error reporting.
+
+Document statuses:
+
+`UPLOADED → PROCESSING → INDEXED`
+
+Failure state:
+
+`FAILED`
+
+## FR-04: Document Processing Pipeline
+
+The ingestion pipeline:
+
+1. Validate uploaded files.
+2. Extract document text.
+3. Preserve source metadata.
+4. Split documents into chunks.
+5. Generate embeddings.
+6. Store chunks in Chroma.
+7. Save metadata in PostgreSQL.
+8. Update processing status.
+
+Every chunk must retain:
+
+- Document ID.
+- Workspace ID.
+- Page number, when available.
+- Chunk index.
+- Original filename.
+- Extracted content.
+- Embedding model identifier.
+
+Initial chunking configuration:
+
+- Chunk size: 1,000 characters.
+- Chunk overlap: 150 characters.
+- Configurable per ingestion experiment.
+
+These are initial defaults, not permanent assumptions. We will benchmark alternative configurations.
+
+## FR-05: Advanced Retrieval
+
+The retrieval system must support three strategies.
+
+**A. Vector Search**
+
+Uses semantic embeddings to identify conceptually relevant chunks.
+
+**B. BM25 Search**
+
+Uses keyword-based relevance to find exact terminology, names, identifiers and technical terms.
+
+**C. Hybrid Search**
+
+Combines dense and sparse retrieval using Reciprocal Rank Fusion (RRF).
+
+Initial retrieval configuration:
+
+- Vector top-k: 10.
+- BM25 top-k: 10.
+- RRF fusion: k = 60.
+- Fused candidate pool: up to 20.
+- Reranked output: top 5.
+
+All parameters must be configurable.
+
+## FR-06: Reranking
+
+A cross-encoder reranker will evaluate the relevance of each retrieved chunk against the original user query.
+
+Initial candidate model:
+
+`BAAI/bge-reranker-base`
+
+The model will score query-document pairs and reorder retrieved evidence.
+
+The reranker must:
+
+- Accept query and candidate chunks.
+- Produce relevance scores.
+- Sort candidates by score.
+- Return configurable top-k results.
+- Record latency.
+
+## FR-07: Evidence Validation
+
+Before generating an answer, the system must determine whether sufficient evidence has been retrieved.
+
+Validation will combine:
+
+- Retrieval relevance scores.
+- Reranker scores.
+- Evidence coverage.
+- Source availability.
+- LLM-based evidence assessment where appropriate.
+
+Important: A similarity score alone cannot establish that evidence is sufficient.
+
+The system must support three outcomes:
+
+1. Sufficient evidence – proceed to generation.
+2. Insufficient evidence – reject the question.
+3. Ambiguous evidence – ask for clarification or perform a controlled retrieval retry.
+
+Thresholds must be calibrated using an evaluation dataset rather than arbitrarily fixed.
+
+## FR-08: Grounded Answer Generation
+
+The generation model must:
+
+- Use retrieved evidence as its factual basis.
+- Avoid unsupported claims.
+- Cite the evidence used.
+- Indicate uncertainty.
+- Avoid inventing page numbers or sources.
+- Distinguish missing information from contradictory information.
+
+Initial system instruction:
+
+"Answer the user's question using only the supplied evidence. Every factual claim about the uploaded documents must reference supporting source identifiers. If the evidence does not support an answer, explicitly state that sufficient information was not found. Never fabricate citations."
+
+## FR-09: Source Citations
+
+Every generated answer must support source inspection.
+
+Citation metadata:
+
+- Source document name.
+- Document ID.
+- Page number, when available.
+- Chunk ID.
+- Supporting text excerpt.
+
+Clicking a citation should open the corresponding document at the relevant page when technically supported.
+
+## FR-10: Conversational Memory
+
+The platform must support multi-turn conversations.
+
+Requirements:
+
+- Persistent conversation IDs.
+- Message history.
+- Context-aware follow-up questions.
+- Workspace-aware retrieval.
+- PostgreSQL-backed checkpointing.
+- Conversation deletion.
+
+Conversation memory must not allow one user's messages or workspace information to leak into another user's context.
+
+## FR-11: Evaluation System
+
+The application must support automated evaluation using RAGAS.
+
+Initial evaluation metrics:
+
+| Metric | Purpose |
+|---|---|
+| Faithfulness | Are generated claims supported by retrieved context? |
+| Answer relevancy | Does the answer address the question? |
+| Context precision | Are retrieved chunks relevant? |
+| Context recall | Does retrieval capture the required evidence? |
+
+Additional engineering metrics:
+
+- Recall@K.
+- MRR.
+- nDCG@K.
+- Retrieval latency.
+- Reranking latency.
+- Generation latency.
+- Token consumption.
+- Estimated API cost.
+
+We will maintain a benchmark dataset containing questions, reference answers and supporting evidence.
+
+## FR-12: Retrieval Comparison
+
+The evaluation engine must compare:
+
+1. Vector Search.
+2. Hybrid Search.
+3. Hybrid Search + Reranking.
+
+All approaches must use the same test questions and ground-truth evidence.
+
+Results must be stored and displayed in a dashboard.
+
+## FR-13: Analytics Dashboard
+
+The dashboard must show:
+
+- Total documents.
+- Indexed documents.
+- Failed documents.
+- Total conversations.
+- Total questions.
+- Average retrieval latency.
+- Average response latency.
+- Retrieval performance.
+- Evaluation scores.
+- Model usage and estimated cost.
+
+## FR-14: LLM Provider Management
+
+Initial providers:
+
+**Ollama**
+- Local inference.
+- No per-request API fee.
+- Model selection through configuration.
+
+**Groq API**
+- Hosted inference.
+- Requires an API key.
+- Subject to provider quotas and pricing.
+
+The backend must expose a common model interface so that the application does not depend on one provider's implementation.
+
+Provider configuration must never be exposed to the frontend.
+
+---
+
+# 4. Non-Functional Requirements
+
+| Category | Requirement |
+|---|---|
+| Security | Secure authentication and authorization |
+| Isolation | Strict user/workspace data isolation |
+| Performance | Configurable retrieval and generation latency targets |
+| Scalability | Background document ingestion |
+| Reliability | Retry, timeout and error-handling mechanisms |
+| Maintainability | Modular Python backend |
+| Observability | Structured logs and request tracing |
+| Usability | Responsive, accessible interface |
+| Portability | Docker-compatible deployment |
+| Extensibility | Replaceable LLM, embedding and vector providers |
+
+Performance targets will be measured under a documented test environment. LLM response time will be separated from retrieval time so that external model latency does not distort retrieval benchmarks.
+
+---
+
+# 5. Technology Stack
+
+## Frontend
+
+| Technology | Responsibility |
+|---|---|
+| Next.js | Application framework |
+| React | UI components |
+| TypeScript | Type safety |
+| Tailwind CSS | Styling |
+| shadcn/ui | UI component library |
+| TanStack Query | Server-state management |
+| React Markdown | Markdown answer rendering |
+| Recharts | Analytics visualization |
+
+## Backend
+
+| Technology | Responsibility |
+|---|---|
+| Python | Core application |
+| FastAPI | REST API |
+| Pydantic | Data validation |
+| SQLAlchemy | ORM |
+| Alembic | Database migrations |
+| LangChain | Model and retrieval integrations |
+| LangGraph | Workflow orchestration |
+| Celery / Redis | Background processing when required |
+
+## AI and Retrieval
+
+| Technology | Responsibility |
+|---|---|
+| Ollama | Local LLM inference |
+| Groq | Hosted LLM inference |
+| HuggingFace | Embedding models |
+| Chroma | Vector storage |
+| BM25 | Keyword retrieval |
+| BGE Reranker | Cross-encoder reranking |
+| RAGAS | RAG evaluation |
+| LangSmith | Optional tracing |
+
+## Infrastructure
+
+| Technology | Responsibility |
+|---|---|
+| PostgreSQL | Application database |
+| Redis | Queue and caching |
+| Local filesystem | Initial document storage |
+| Docker | Containerization |
+| GitHub Actions | CI/CD |
+| AWS S3 | Future document storage |
+| AWS EC2 | Future deployment |
+
+**Cost strategy:** Local Ollama, HuggingFace embeddings, Chroma, local PostgreSQL and local storage will be the initial development setup. Groq will be an optional cloud provider. Hosted infrastructure will be introduced only when needed.
+
+---
+
+# 6. System Architecture
+
+## 6.1 High-Level Architecture
+
+```mermaid
+flowchart TB
+    U[User] --> FE[Next.js Frontend]
+    FE --> API[FastAPI Backend]
+
+    API --> AUTH[Authentication]
+    API --> DB[(PostgreSQL)]
+    API --> INGEST[Document Ingestion]
+    API --> GRAPH[LangGraph RAG Engine]
+
+    INGEST --> PARSE[Document Loaders]
+    PARSE --> SPLIT[Text Splitter]
+    SPLIT --> EMB[Embedding Model]
+    EMB --> VDB[(Chroma Vector DB)]
+    INGEST --> DB
+
+    GRAPH --> QUERY[Query Processing]
+    QUERY --> DENSE[Dense Retrieval]
+    QUERY --> SPARSE[BM25 Retrieval]
+    DENSE --> FUSION[RRF Fusion]
+    SPARSE --> FUSION
+    FUSION --> RERANK[Cross Encoder Reranker]
+    RERANK --> VALIDATE[Evidence Validation]
+
+    VALIDATE --> GEN[LLM Generation]
+    VALIDATE --> REJECT[Insufficient Evidence]
+
+    GEN --> PROVIDER[Ollama / Groq]
+    GEN --> RESPONSE[Answer + Citations]
+    REJECT --> RESPONSE
+    RESPONSE --> API
+
+    GRAPH --> EVAL[RAG Evaluation]
+    EVAL --> DB
+```
+
+## 6.2 Architectural Principles
+
+**Separation of concerns**
+
+The frontend must not implement retrieval logic. The backend owns all AI workflows.
+
+**Provider abstraction**
+
+LLM, embedding, vector database and reranking providers must be replaceable.
+
+**Independent ingestion**
+
+Document processing must be independent of chat requests.
+
+**Workspace isolation**
+
+Every database query, vector search and conversation operation must enforce authorization and workspace boundaries.
+
+**Asynchronous operations**
+
+Long-running document ingestion and evaluation tasks should run as background jobs.
+
+---
+
+# 7. LangGraph Architecture
+
+## 7.1 Proposed Workflow
+
+```mermaid
+flowchart TD
+    START([START]) --> ANALYZE[Analyze Query]
+    ANALYZE --> REWRITE[Rewrite Query]
+    REWRITE --> RETRIEVE[Hybrid Retrieval]
+    RETRIEVE --> RERANK[Rerank Candidates]
+    RERANK --> VALIDATE[Validate Evidence]
+
+    VALIDATE --> DECISION{Evidence Sufficient?}
+
+    DECISION -->|Yes| GENERATE[Generate Grounded Answer]
+    DECISION -->|No, Retry Allowed| RETRY[Refine Retrieval]
+    RETRY --> RERANK
+    DECISION -->|No, Retry Exhausted| REJECT[Return Insufficient Evidence]
+
+    GENERATE --> CITATION[Validate Citations]
+    CITATION --> SAVE[Save Conversation]
+    REJECT --> SAVE
+    SAVE --> END([END])
+```
+
+## 7.2 Graph State
+
+Initial conceptual state:
+
+```python
+class ResearchState(TypedDict):
+    user_id: str
+    workspace_id: str
+    conversation_id: str
+
+    original_query: str
+    rewritten_query: str
+
+    retrieved_documents: list
+    reranked_documents: list
+
+    evidence_sufficient: bool
+    retry_count: int
+
+    answer: str
+    citations: list
+
+    rejection_reason: str
+    error: str
+```
+
+The final implementation will use typed models for retrieved evidence and citations rather than relying on unvalidated dictionaries.
+
+## 7.3 Graph Nodes
+
+| Node | Responsibility |
+|---|---|
+| analyze_query | Understand the user question |
+| rewrite_query | Improve retrieval query |
+| hybrid_retrieve | Run vector and BM25 search |
+| rerank | Score candidate chunks |
+| validate_evidence | Check evidence sufficiency |
+| generate_answer | Generate grounded response |
+| validate_citations | Verify cited chunk references |
+| reject_query | Return a controlled rejection |
+| save_conversation | Persist messages and metadata |
+
+## 7.4 Retry Strategy
+
+We will allow a limited retrieval retry, initially one retry.
+
+The graph must terminate safely if:
+
+- No relevant chunks are found.
+- Reranker confidence is insufficient.
+- Retrieval repeatedly fails.
+- The model provider times out.
+
+No unlimited retrieval loops.
+
+---
+
+# 8. Database Design
+
+PostgreSQL will store application metadata and relational records.
+
+Chroma will store embeddings and searchable chunk representations.
+
+## 8.1 Entity Relationships
+
+```mermaid
+erDiagram
+    USERS ||--o{ WORKSPACES : owns
+    WORKSPACES ||--o{ DOCUMENTS : contains
+    DOCUMENTS ||--o{ DOCUMENT_CHUNKS : produces
+    WORKSPACES ||--o{ CONVERSATIONS : contains
+    USERS ||--o{ CONVERSATIONS : creates
+    CONVERSATIONS ||--o{ MESSAGES : contains
+    MESSAGES ||--o{ CITATIONS : references
+    DOCUMENT_CHUNKS ||--o{ CITATIONS : supports
+    USERS ||--o{ EVALUATION_RUNS : executes
+    WORKSPACES ||--o{ EVALUATION_RUNS : scopes
+```
+
+## 8.2 Core Tables
+
+### users
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| email | VARCHAR, UNIQUE |
+| password_hash | TEXT |
+| full_name | VARCHAR |
+| is_active | BOOLEAN |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
+
+### workspaces
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| owner_id | UUID, FK |
+| name | VARCHAR |
+| description | TEXT |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
+
+### documents
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| workspace_id | UUID, FK |
+| uploaded_by | UUID, FK |
+| filename | VARCHAR |
+| storage_path | TEXT |
+| file_type | VARCHAR |
+| file_size | BIGINT |
+| checksum | VARCHAR |
+| status | VARCHAR |
+| page_count | INTEGER |
+| chunk_count | INTEGER |
+| error_message | TEXT |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
+
+### document_chunks
+
+This table stores chunk metadata, not necessarily the actual embedding vectors.
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| document_id | UUID, FK |
+| workspace_id | UUID, FK |
+| chunk_index | INTEGER |
+| content | TEXT |
+| page_number | INTEGER |
+| token_count | INTEGER |
+| vector_id | VARCHAR |
+| metadata | JSONB |
+| created_at | TIMESTAMP |
+
+### conversations
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| user_id | UUID, FK |
+| workspace_id | UUID, FK |
+| title | VARCHAR |
+| created_at | TIMESTAMP |
+| updated_at | TIMESTAMP |
+
+### messages
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| conversation_id | UUID, FK |
+| role | VARCHAR |
+| content | TEXT |
+| model_name | VARCHAR |
+| latency_ms | INTEGER |
+| token_usage | JSONB |
+| created_at | TIMESTAMP |
+
+### citations
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| message_id | UUID, FK |
+| chunk_id | UUID, FK |
+| citation_number | INTEGER |
+| quoted_text | TEXT |
+| page_number | INTEGER |
+| created_at | TIMESTAMP |
+
+### evaluation_runs
+
+| Column | Type |
+|---|---|
+| id | UUID, PK |
+| user_id | UUID, FK |
+| workspace_id | UUID, FK |
+| retrieval_strategy | VARCHAR |
+| model_name | VARCHAR |
+| dataset_name | VARCHAR |
+| metrics | JSONB |
+| status | VARCHAR |
+| duration_ms | INTEGER |
+| created_at | TIMESTAMP |
+
+## 8.3 Additional Tables
+
+Future or supporting tables:
+
+- `refresh_tokens`
+- `workspace_members`
+- `document_processing_jobs`
+- `evaluation_datasets`
+- `evaluation_questions`
+- `audit_logs`
+- `llm_provider_configs`
+
+The initial database will include the essential tables. Team membership and organization-level RBAC can be added when the product moves beyond individual workspaces.
+
+## 8.4 Database and Vector Consistency
+
+A critical engineering requirement:
+
+Document deletion must remove:
+
+1. Document metadata.
+2. Document chunks.
+3. Corresponding Chroma vectors.
+4. Stored source file.
+
+Deletion should use a controlled background workflow or a transactional-outbox-style pattern to handle partial failures. PostgreSQL and Chroma cannot participate in one shared database transaction.
+
+---
+
+# 9. API Specification
+
+Base URL:
+
+`/api/v1`
+
+## Authentication
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /auth/register | Register |
+| POST | /auth/login | Login |
+| POST | /auth/refresh | Refresh token |
+| POST | /auth/logout | Logout |
+| GET | /auth/me | Current user |
+
+## Workspace
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /workspaces | Create workspace |
+| GET | /workspaces | List workspaces |
+| GET | /workspaces/{id} | Get workspace |
+| PATCH | /workspaces/{id} | Update workspace |
+| DELETE | /workspaces/{id} | Delete workspace |
+
+## Documents
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /workspaces/{id}/documents | Upload documents |
+| GET | /workspaces/{id}/documents | List documents |
+| GET | /documents/{id} | Document details |
+| GET | /documents/{id}/status | Processing status |
+| DELETE | /documents/{id} | Delete document |
+| POST | /documents/{id}/reindex | Re-index document |
+
+## Research / Chat
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /workspaces/{id}/chat | Ask a question |
+| GET | /conversations | List conversations |
+| GET | /conversations/{id} | Conversation details |
+| GET | /conversations/{id}/messages | Message history |
+| DELETE | /conversations/{id} | Delete conversation |
+
+## Evaluation
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | /evaluations/run | Start evaluation |
+| GET | /evaluations | List evaluations |
+| GET | /evaluations/{id} | Evaluation details |
+| GET | /evaluations/compare | Compare retrieval strategies |
+
+## Analytics
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | /analytics/overview | Dashboard metrics |
+| GET | /analytics/retrieval | Retrieval performance |
+| GET | /analytics/usage | Model usage |
+
+All endpoints must enforce authentication, resource ownership and workspace-level authorization.
+
+---
+
+# 10. Frontend Product Specifications
+
+## 10.1 Application Layout
+
+The interface will use a modern SaaS dashboard design.
+
+Primary layout:
+
+- Left sidebar navigation.
+- Main content workspace.
+- Optional right-side citation/details panel.
+- Responsive mobile navigation.
+
+## 10.2 Main Screens
+
+### A. Login / Registration
+
+- Professional authentication screens.
+- Email and password.
+- Form validation.
+- Error handling.
+
+### B. Dashboard
+
+- Total documents.
+- Active workspaces.
+- Recent conversations.
+- Recent documents.
+- System usage.
+
+### C. Knowledge Base
+
+- Upload documents.
+- Drag-and-drop upload.
+- Document table.
+- Processing indicators.
+- Delete and re-index actions.
+
+### D. Research Chat
+
+- Streaming AI responses.
+- Markdown rendering.
+- Citation references.
+- Source preview.
+- Follow-up questions.
+- Conversation history.
+- Insufficient-evidence messages.
+
+### E. Evaluation Dashboard
+
+- Retrieval strategy selection.
+- Evaluation execution.
+- Metrics visualization.
+- Comparison charts.
+- Evaluation history.
+
+### F. Settings
+
+- LLM provider selection.
+- Model configuration.
+- Embedding configuration.
+- User profile.
+- Account management.
+
+## 10.3 Design Direction
+
+- Professional enterprise SaaS.
+- Clean typography.
+- Neutral background.
+- Dark navy or charcoal navigation.
+- Accessible color contrast.
+- Minimal visual clutter.
+- Consistent loading and error states.
+
+The UI must prioritize readability of answers and visibility of supporting evidence.
+
+---
+
+# 11. Security and Reliability
+
+## Authentication and authorization
+
+- Password hashing using Argon2id.
+- Secure access and refresh-token handling.
+- Ownership checks on every resource.
+- Workspace isolation.
+- No API secrets in frontend code.
+
+## Document security
+
+- File extension and MIME validation.
+- File size limits.
+- Safe file naming.
+- Content parsing isolation.
+- Protection against malicious document content and prompt injection.
+- Safe deletion and cleanup.
+
+## RAG security
+
+Documents must be treated as untrusted input.
+
+Instructions embedded inside uploaded documents must never override system instructions.
+
+The LLM must not be allowed to execute arbitrary code or access unrelated workspace data.
+
+## Data protection
+
+- Environment variables for secrets.
+- `.env` excluded from Git.
+- `.env.example` committed.
+- No passwords or API keys in logs.
+- Controlled retention and deletion.
+- Tenant-aware database access.
+
+## Reliability
+
+- API timeouts.
+- Bounded retries.
+- Background task status.
+- Structured error messages.
+- Health-check endpoint.
+- Provider failure handling.
+- Graceful degradation.
+
+---
+
+# 12. Testing Strategy
+
+## Unit Tests
+
+- Document loaders.
+- Text splitting.
+- Embedding generation.
+- Vector retrieval.
+- BM25 retrieval.
+- RRF fusion.
+- Reranking.
+- Citation validation.
+- Evidence rejection.
+- Authorization checks.
+
+## Integration Tests
+
+- Document upload to indexing.
+- Full RAG workflow.
+- PostgreSQL integration.
+- Chroma integration.
+- LangGraph checkpoint persistence.
+- LLM provider switching.
+- Citation retrieval.
+
+## Evaluation Tests
+
+- Answer faithfulness.
+- Retrieval recall.
+- Context precision.
+- Answer relevancy.
+- Insufficient-evidence rejection.
+- Retrieval latency comparison.
+
+## Security Tests
+
+- Cross-workspace access attempts.
+- Unauthorized document access.
+- Invalid file uploads.
+- Malicious document instructions.
+- Authentication and token validation.
+
+## Acceptance Criteria
+
+The MVP cannot be marked complete until:
+
+1. A user can register and create a workspace.
+2. Documents can be uploaded and indexed.
+3. Questions can be answered using uploaded documents.
+4. Answers include verifiable source citations.
+5. Unsupported questions are rejected.
+6. Vector, BM25 and hybrid retrieval work independently.
+7. Hybrid retrieval and reranking can be benchmarked.
+8. Conversations persist after application restart.
+9. User and workspace data remain isolated.
+10. Automated tests pass.
+11. The product runs using Docker.
+12. Setup documentation is sufficient for another developer to run the project.
+
+---
+
+# 13. Development Milestones
+
+The development will be divided into manageable milestones. We will finish and verify one milestone before moving to the next.
+
+| Milestone | Deliverable | Estimated effort |
+|---|---|---|
+| M0 | PRD, architecture and project setup | 2–3 days |
+| M1 | Frontend foundation and authentication | 3–4 days |
+| M2 | Backend and database foundation | 3–4 days |
+| M3 | Document ingestion and management | 4–5 days |
+| M4 | Vector search and BM25 | 3–4 days |
+| M5 | Hybrid search and reranking | 3–4 days |
+| M6 | LangGraph RAG workflow | 4–5 days |
+| M7 | Citations and evidence validation | 3–4 days |
+| M8 | Conversation memory and streaming | 3–4 days |
+| M9 | RAGAS evaluation and benchmarks | 4–5 days |
+| M10 | Analytics and product refinement | 3–4 days |
+| M11 | Security, Docker and deployment | 4–5 days |
+| M12 | Documentation and portfolio showcase | 2–3 days |
+
+**Estimated total: 41–54 working days.**
+
+These are planning estimates for a focused solo development effort, not guaranteed delivery dates. We can adjust the schedule based on implementation complexity and available time.
+
+---
+
+# 14. GitHub Repository Structure
+
+Proposed monorepo:
+
+```text
+cognexa/
+│
+├── frontend/
+│   ├── app/
+│   ├── components/
+│   ├── hooks/
+│   ├── lib/
+│   ├── services/
+│   ├── types/
+│   └── public/
+│
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── v1/
+│   │   ├── core/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── repositories/
+│   │   ├── services/
+│   │   ├── ingestion/
+│   │   ├── retrieval/
+│   │   ├── rag/
+│   │   ├── graphs/
+│   │   ├── evaluation/
+│   │   └── main.py
+│   │
+│   ├── migrations/
+│   ├── tests/
+│   └── requirements.txt
+│
+├── evaluation/
+│   ├── datasets/
+│   ├── experiments/
+│   └── reports/
+│
+├── docs/
+│   ├── PRD.md
+│   ├── ARCHITECTURE.md
+│   ├── DATABASE.md
+│   ├── API.md
+│   └── DEVELOPMENT.md
+│
+├── scripts/
+├── docker/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+The frontend and backend will have independent dependency management and test suites.
+
+---
+
+# 15. Development Principles
+
+We will follow these rules throughout development:
+
+1. No unnecessary complexity.
+2. No hardcoded API keys.
+3. No monolithic backend files.
+4. No mixing frontend and AI business logic.
+5. No trusting LLM output without validation.
+6. No claiming retrieval quality without evaluation.
+7. No implementing enterprise features before the MVP needs them.
+8. Every major feature must have a test.
+9. Every milestone must produce a working, demonstrable result.
+10. All dependencies and model versions must be recorded.
+
+We will also maintain a decision log for important architectural choices so that trade-offs can be explained during interviews.
+
+---
+
+# 16. Portfolio Showcase Deliverables
+
+The final product showcase must include:
+
+- Professional GitHub repository.
+- Product landing page.
+- Live application demo.
+- Architecture diagram.
+- Technical documentation.
+- Screenshots and demo video.
+- Sample documents and questions.
+- RAG evaluation report.
+- Retrieval comparison report.
+- Docker setup instructions.
+- Resume-ready project description.
+
+The demonstration should show the complete journey:
+
+**Upload documents → Index documents → Ask questions → Retrieve evidence → Rerank → Validate → Generate cited answers → Evaluate retrieval quality.**
+
+---
+
+# 17. Final Product Definition
+
+**Cognexa** is an enterprise-oriented document research platform built using Next.js, FastAPI, LangGraph and advanced RAG techniques.
+
+Its primary differentiator is evidence-grounded research through hybrid retrieval, cross-encoder reranking, citation validation and measurable evaluation.
+
+The initial release will prioritize a polished individual-user experience with secure workspace isolation. Its architecture will support future multi-user enterprise deployment.
+
+**Definition of success:** A developer or recruiter can open the application, upload documents, ask complex questions, inspect supporting evidence, see unsupported queries rejected, and review measurable retrieval performance.
+
+---
+
+**Document status:** Product direction finalized. Technical design approved for implementation planning.
+
+**Next milestone:** M0 – Development environment, repository setup, architecture validation and initial project skeleton.
+
+*Implementation note: Technology versions, provider quotas, model availability and hosting costs will be verified when we establish the development environment. No third-party API keys are included or assumed to be free.*

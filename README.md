@@ -50,6 +50,12 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 The backend permits localhost origins for development. For deployment, set `CORS_ALLOWED_ORIGINS` to a comma-separated list of frontend origins and use HTTPS.
 
+### Document processing on Render Free
+
+Document uploads create a pending PostgreSQL job and return before indexing. A single worker thread starts with the FastAPI lifespan, claims jobs with PostgreSQL row locks, and uses leases and bounded retries to recover interrupted work. The thread stops during application shutdown; if an active job does not finish before shutdown, its lease expires and a later worker can reclaim it.
+
+This is a best-effort Render Free arrangement, not continuous background execution. Render Free web services can spin down while idle, so queued jobs wait until the service starts again. Job rows persist in PostgreSQL, but this phase still uses local `uploads/` and `chroma_db/` paths; those files and vectors can disappear on restart or spin-down. A pending job whose source upload is gone cannot be recovered until durable document and vector storage are added in a later phase.
+
 ## Project layout
 
 ```text

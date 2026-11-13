@@ -209,14 +209,18 @@ def test_upload_accepts_allowed_extension_without_external_processing(
 
     client, _, workspace_id = api_context
     monkeypatch.setattr(document_storage, "UPLOAD_DIR", tmp_path)
-    monkeypatch.setattr(documents_api, "process_document", lambda *_args: None)
+    monkeypatch.setattr(
+        documents_api,
+        "enqueue_document_job",
+        lambda db, document: db.add(document),
+    )
 
     response = client.post(
         f"/api/v1/workspaces/{workspace_id}/documents/",
         files={"file": ("notes.md", b"local test content")},
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 202
     assert response.json()["filename"] == "notes.md"
     assert response.json()["file_type"] == ".md"
     assert response.json()["file_size"] == len(b"local test content")

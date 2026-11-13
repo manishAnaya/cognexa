@@ -1,26 +1,34 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
+
 from app.api.v1.router import router
-from contextlib import asynccontextmanager
-from app.graphs.checkpointer import setup_checkpointer, pool
+from app.core.config import settings
+from app.graphs.checkpointer import pool, setup_checkpointer
+from app.services.document_job_worker import document_job_worker
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create checkpoint tables and open the connection pool.
     setup_checkpointer()
+    document_job_worker.start()
 
-    yield
+    try:
+        yield
+    finally:
+        # Stop the worker before closing application database resources.
+        document_job_worker.stop()
+        pool.close()
 
-    # Close PostgreSQL connection pool during shutdown.
-    pool.close()
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Enterprise AI Research Assistant",
     version="0.1.0",
     debug=settings.DEBUG,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Flutter web runs on a local development origin and sends a preflight request
@@ -43,9 +51,7 @@ app.add_middleware(
 
 app.include_router(router, prefix=settings.API_V1_PREFIX)
 
+
 @app.get("/")
 async def root():
-    return {
-        "message": "Welcome to Cognexa",
-        "status": "running"
-    }
+    return {"message": "Welcome to Cognexa", "status": "running"}

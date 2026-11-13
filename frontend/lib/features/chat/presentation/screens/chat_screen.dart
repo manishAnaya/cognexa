@@ -63,7 +63,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete conversation?'),
         content: Text(
-          '“${conversation.title}” and its messages will be deleted.',
+          '“${conversation.title}” and its messages will be deleted..',
         ),
         actions: [
           TextButton(

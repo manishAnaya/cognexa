@@ -34,10 +34,10 @@ Thumbs.db
 *.log
 
 # Uploaded documents and local data
-data/
-uploads/
-chroma_db/
-storage/
+/data/
+/uploads/
+/chroma_db/
+/storage/
 
 # Frontend
 frontend/node_modules/
@@ -48,7 +48,7 @@ frontend/.flutter-plugins
 frontend/.flutter-plugins-dependencies
 
 # Build
-dist/
-build/
+/dist/
+/build/
 *.egg-info/
 

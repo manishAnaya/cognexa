@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    ENABLE_RERANKER: bool = True
+
     # RAG currently uses Groq for query rewriting, evidence checks, and answers.
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"

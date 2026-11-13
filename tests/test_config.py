@@ -12,11 +12,13 @@ def test_settings_load_defaults_and_explicit_values(monkeypatch) -> None:
     monkeypatch.setenv("JWT_SECRET_KEY", "unit-test-key-that-is-not-a-real-credential")
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("DEBUG", raising=False)
+    monkeypatch.delenv("ENABLE_RERANKER", raising=False)
 
     settings = Settings(_env_file=None)
 
     assert settings.APP_ENV == "production"
     assert settings.DEBUG is False
+    assert settings.ENABLE_RERANKER is True
     assert settings.API_V1_PREFIX == "/api/v1"
     assert settings.DATABASE_URL.endswith("/cognexa")
     assert settings.JWT_SECRET_KEY == "unit-test-key-that-is-not-a-real-credential"
@@ -43,6 +45,18 @@ def test_settings_environment_overrides(monkeypatch) -> None:
     )
     assert settings.DATABASE_URL.startswith("postgresql+psycopg://override:")
     assert settings.JWT_SECRET_KEY == "another-test-only-signing-key"
+
+
+def test_settings_reranker_environment_override(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "DATABASE_URL", "postgresql+psycopg://unit:unit@localhost/cognexa"
+    )
+    monkeypatch.setenv("JWT_SECRET_KEY", "unit-test-key-that-is-not-a-real-credential")
+    monkeypatch.setenv("ENABLE_RERANKER", "false")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.ENABLE_RERANKER is False
 
 
 def test_settings_can_load_local_development_env_file(

@@ -10,7 +10,7 @@ part of 'conversation_providers.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(conversationRepository)
-const conversationRepositoryProvider = ConversationRepositoryProvider._();
+final conversationRepositoryProvider = ConversationRepositoryProvider._();
 
 final class ConversationRepositoryProvider
     extends
@@ -20,7 +20,7 @@ final class ConversationRepositoryProvider
           ConversationRepository
         >
     with $Provider<ConversationRepository> {
-  const ConversationRepositoryProvider._()
+  ConversationRepositoryProvider._()
     : super(
         from: null,
         argument: null,
@@ -58,7 +58,7 @@ String _$conversationRepositoryHash() =>
     r'c8e5c1c9749356083ef86d5fa40b787fcdea4b14';
 
 @ProviderFor(conversations)
-const conversationsProvider = ConversationsFamily._();
+final conversationsProvider = ConversationsFamily._();
 
 final class ConversationsProvider
     extends
@@ -70,7 +70,7 @@ final class ConversationsProvider
     with
         $FutureModifier<List<ConversationModel>>,
         $FutureProvider<List<ConversationModel>> {
-  const ConversationsProvider._({
+  ConversationsProvider._({
     required ConversationsFamily super.from,
     required String super.argument,
   }) : super(
@@ -118,7 +118,7 @@ String _$conversationsHash() => r'd19a2671d130d034f1d5714fd0333719b558ac6e';
 
 final class ConversationsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<ConversationModel>>, String> {
-  const ConversationsFamily._()
+  ConversationsFamily._()
     : super(
         retry: null,
         name: r'conversationsProvider',
@@ -135,7 +135,7 @@ final class ConversationsFamily extends $Family
 }
 
 @ProviderFor(conversationMessages)
-const conversationMessagesProvider = ConversationMessagesFamily._();
+final conversationMessagesProvider = ConversationMessagesFamily._();
 
 final class ConversationMessagesProvider
     extends
@@ -147,7 +147,7 @@ final class ConversationMessagesProvider
     with
         $FutureModifier<List<MessageModel>>,
         $FutureProvider<List<MessageModel>> {
-  const ConversationMessagesProvider._({
+  ConversationMessagesProvider._({
     required ConversationMessagesFamily super.from,
     required (String, String) super.argument,
   }) : super(
@@ -200,7 +200,7 @@ final class ConversationMessagesFamily extends $Family
           FutureOr<List<MessageModel>>,
           (String, String)
         > {
-  const ConversationMessagesFamily._()
+  ConversationMessagesFamily._()
     : super(
         retry: null,
         name: r'conversationMessagesProvider',

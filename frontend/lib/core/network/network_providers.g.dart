@@ -10,12 +10,12 @@ part of 'network_providers.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(tokenStorage)
-const tokenStorageProvider = TokenStorageProvider._();
+final tokenStorageProvider = TokenStorageProvider._();
 
 final class TokenStorageProvider
     extends $FunctionalProvider<TokenStorage, TokenStorage, TokenStorage>
     with $Provider<TokenStorage> {
-  const TokenStorageProvider._()
+  TokenStorageProvider._()
     : super(
         from: null,
         argument: null,
@@ -51,12 +51,12 @@ final class TokenStorageProvider
 String _$tokenStorageHash() => r'23b0f4fbc323ec56119e50446aeaa2c5e3abe772';
 
 @ProviderFor(dioClient)
-const dioClientProvider = DioClientProvider._();
+final dioClientProvider = DioClientProvider._();
 
 final class DioClientProvider
     extends $FunctionalProvider<DioClient, DioClient, DioClient>
     with $Provider<DioClient> {
-  const DioClientProvider._()
+  DioClientProvider._()
     : super(
         from: null,
         argument: null,
@@ -92,11 +92,11 @@ final class DioClientProvider
 String _$dioClientHash() => r'4e85c1e35a3027b9b5de900c1bb69edb013a0b61';
 
 @ProviderFor(dio)
-const dioProvider = DioProvider._();
+final dioProvider = DioProvider._();
 
 final class DioProvider extends $FunctionalProvider<Dio, Dio, Dio>
     with $Provider<Dio> {
-  const DioProvider._()
+  DioProvider._()
     : super(
         from: null,
         argument: null,

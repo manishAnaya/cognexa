@@ -10,7 +10,7 @@ part of 'workspace_providers.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(workspaceRepository)
-const workspaceRepositoryProvider = WorkspaceRepositoryProvider._();
+final workspaceRepositoryProvider = WorkspaceRepositoryProvider._();
 
 final class WorkspaceRepositoryProvider
     extends
@@ -20,7 +20,7 @@ final class WorkspaceRepositoryProvider
           WorkspaceRepository
         >
     with $Provider<WorkspaceRepository> {
-  const WorkspaceRepositoryProvider._()
+  WorkspaceRepositoryProvider._()
     : super(
         from: null,
         argument: null,
@@ -58,7 +58,7 @@ String _$workspaceRepositoryHash() =>
     r'477f30a7d5f9e4119e26ebcf9aafc2af0794a545';
 
 @ProviderFor(workspaces)
-const workspacesProvider = WorkspacesProvider._();
+final workspacesProvider = WorkspacesProvider._();
 
 final class WorkspacesProvider
     extends
@@ -70,7 +70,7 @@ final class WorkspacesProvider
     with
         $FutureModifier<List<WorkspaceModel>>,
         $FutureProvider<List<WorkspaceModel>> {
-  const WorkspacesProvider._()
+  WorkspacesProvider._()
     : super(
         from: null,
         argument: null,
@@ -99,11 +99,11 @@ final class WorkspacesProvider
 String _$workspacesHash() => r'c1f866a6f6b6e0f354d8ae42e4015a6c0ea1a840';
 
 @ProviderFor(SelectedWorkspace)
-const selectedWorkspaceProvider = SelectedWorkspaceProvider._();
+final selectedWorkspaceProvider = SelectedWorkspaceProvider._();
 
 final class SelectedWorkspaceProvider
     extends $NotifierProvider<SelectedWorkspace, WorkspaceModel?> {
-  const SelectedWorkspaceProvider._()
+  SelectedWorkspaceProvider._()
     : super(
         from: null,
         argument: null,
@@ -136,8 +136,7 @@ abstract class _$SelectedWorkspace extends $Notifier<WorkspaceModel?> {
   WorkspaceModel? build();
   @$mustCallSuper
   @override
-  void runBuild() {
-    final created = build();
+  WhenComplete runBuild() {
     final ref = this.ref as $Ref<WorkspaceModel?, WorkspaceModel?>;
     final element =
         ref.element
@@ -147,6 +146,6 @@ abstract class _$SelectedWorkspace extends $Notifier<WorkspaceModel?> {
               Object?,
               Object?
             >;
-    element.handleValue(ref, created);
+    return element.handleCreate(ref, build);
   }
 }

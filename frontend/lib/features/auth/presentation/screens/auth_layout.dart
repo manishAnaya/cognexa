@@ -1,5 +1,5 @@
 // Put at: lib/features/auth/presentation/widgets/auth_layout.dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:frontend/app/theme/app_theme.dart';
 
 /// Split-screen on wide layouts (brand panel + form), single column on mobile.

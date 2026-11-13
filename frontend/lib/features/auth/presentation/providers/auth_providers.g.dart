@@ -10,12 +10,12 @@ part of 'auth_providers.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(authRepository)
-const authRepositoryProvider = AuthRepositoryProvider._();
+final authRepositoryProvider = AuthRepositoryProvider._();
 
 final class AuthRepositoryProvider
     extends $FunctionalProvider<AuthRepository, AuthRepository, AuthRepository>
     with $Provider<AuthRepository> {
-  const AuthRepositoryProvider._()
+  AuthRepositoryProvider._()
     : super(
         from: null,
         argument: null,
@@ -51,7 +51,7 @@ final class AuthRepositoryProvider
 String _$authRepositoryHash() => r'7eb5d96c39f2ec46f9b715ba244597ed51a005aa';
 
 @ProviderFor(currentUser)
-const currentUserProvider = CurrentUserProvider._();
+final currentUserProvider = CurrentUserProvider._();
 
 final class CurrentUserProvider
     extends
@@ -61,7 +61,7 @@ final class CurrentUserProvider
           FutureOr<UserModel?>
         >
     with $FutureModifier<UserModel?>, $FutureProvider<UserModel?> {
-  const CurrentUserProvider._()
+  CurrentUserProvider._()
     : super(
         from: null,
         argument: null,
@@ -86,4 +86,4 @@ final class CurrentUserProvider
   }
 }
 
-String _$currentUserHash() => r'ae5e3da7794f9bc029304963e8cd9be8b582cbf9';
+String _$currentUserHash() => r'36a2bc9e178be07dd294fbc65752fe39e9a2a27a';

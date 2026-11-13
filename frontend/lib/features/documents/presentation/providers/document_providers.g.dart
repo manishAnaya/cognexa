@@ -10,7 +10,7 @@ part of 'document_providers.dart';
 // ignore_for_file: type=lint, type=warning
 
 @ProviderFor(documentRepository)
-const documentRepositoryProvider = DocumentRepositoryProvider._();
+final documentRepositoryProvider = DocumentRepositoryProvider._();
 
 final class DocumentRepositoryProvider
     extends
@@ -20,7 +20,7 @@ final class DocumentRepositoryProvider
           DocumentRepository
         >
     with $Provider<DocumentRepository> {
-  const DocumentRepositoryProvider._()
+  DocumentRepositoryProvider._()
     : super(
         from: null,
         argument: null,
@@ -58,7 +58,7 @@ String _$documentRepositoryHash() =>
     r'1fc257e056dbcbe7c0b98a3e3532e9eb57294220';
 
 @ProviderFor(documents)
-const documentsProvider = DocumentsFamily._();
+final documentsProvider = DocumentsFamily._();
 
 final class DocumentsProvider
     extends
@@ -70,7 +70,7 @@ final class DocumentsProvider
     with
         $FutureModifier<List<DocumentModel>>,
         $FutureProvider<List<DocumentModel>> {
-  const DocumentsProvider._({
+  DocumentsProvider._({
     required DocumentsFamily super.from,
     required String super.argument,
   }) : super(
@@ -118,7 +118,7 @@ String _$documentsHash() => r'08537b708ed52f6abb61fe2f3290077c51e06fe4';
 
 final class DocumentsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<DocumentModel>>, String> {
-  const DocumentsFamily._()
+  DocumentsFamily._()
     : super(
         retry: null,
         name: r'documentsProvider',

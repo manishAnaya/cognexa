@@ -28,9 +28,12 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        origin.strip()
-        for origin in settings.CORS_ALLOWED_ORIGINS.split(",")
-        if origin.strip()
+        "https://cognexa-frontend-neon.vercel.app",
+        *(
+            origin.strip()
+            for origin in settings.CORS_ALLOWED_ORIGINS.split(",")
+            if origin.strip()
+        ),
     ],
     allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,

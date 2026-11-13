@@ -81,6 +81,51 @@ def test_health_endpoint(api_context: tuple[TestClient, uuid.UUID, uuid.UUID]) -
     }
 
 
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://cognexa-frontend-neon.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+    ],
+)
+def test_cors_allows_frontend_and_local_origins(origin: str) -> None:
+    client = TestClient(app)
+    try:
+        response = client.get("/", headers={"Origin": origin})
+    finally:
+        client.close()
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert response.headers["access-control-allow-credentials"] == "true"
+
+
+def test_cors_preflight_allows_methods_and_headers() -> None:
+    client = TestClient(app)
+    try:
+        response = client.options(
+            "/api/v1/workspaces/",
+            headers={
+                "Origin": "https://cognexa-frontend-neon.vercel.app",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "authorization,content-type",
+            },
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == (
+        "https://cognexa-frontend-neon.vercel.app"
+    )
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "POST" in response.headers["access-control-allow-methods"]
+    allowed_headers = response.headers["access-control-allow-headers"].lower()
+    assert "authorization" in allowed_headers
+    assert "content-type" in allowed_headers
+
+
 def test_health_does_not_expose_configured_credentials(
     api_context: tuple[TestClient, uuid.UUID, uuid.UUID],
 ) -> None:

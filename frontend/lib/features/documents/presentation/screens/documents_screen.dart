@@ -445,6 +445,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   Widget build(BuildContext context) {
     final workspacesAsync = ref.watch(workspacesProvider);
     final selectedWorkspace = ref.watch(selectedWorkspaceProvider);
+    final availableWorkspaces =
+        workspacesAsync.asData?.value ?? const <WorkspaceModel>[];
+    final listenedWorkspace = selectedWorkspace ??
+        (availableWorkspaces.isEmpty ? null : availableWorkspaces.first);
 
     // Automatically select the first workspace when none is selected.
     ref.listen(workspacesProvider, (previous, next) {
@@ -455,6 +459,31 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         }
       });
     });
+
+    if (listenedWorkspace != null) {
+      final workspaceId = listenedWorkspace.id;
+      ref.listen(documentsProvider(workspaceId), (_, next) {
+        final documents = next.asData?.value;
+        if (documents == null || !mounted) return;
+
+        for (final document in documents) {
+          final key = '$workspaceId:${document.id}';
+          final status = document.status.toLowerCase();
+          final previousStatus = _lastDocumentStatuses[key];
+          if (previousStatus != null &&
+              previousStatus != 'processed' &&
+              status == 'processed') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${document.filename} is processed and ready.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          _lastDocumentStatuses[key] = status;
+        }
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -490,29 +519,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   final workspaceDocuments = ref.watch(
                     documentsProvider(workspace.id),
                   );
-                  ref.listen(documentsProvider(workspace.id), (_, next) {
-                    final documents = next.asData?.value;
-                    if (documents == null || !mounted) return;
-
-                    for (final document in documents) {
-                      final key = '${workspace.id}:${document.id}';
-                      final status = document.status.toLowerCase();
-                      final previousStatus = _lastDocumentStatuses[key];
-                      if (previousStatus != null &&
-                          previousStatus != 'processed' &&
-                          status == 'processed') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${document.filename} is processed and ready.',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                      _lastDocumentStatuses[key] = status;
-                    }
-                  });
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

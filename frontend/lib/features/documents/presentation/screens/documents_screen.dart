@@ -64,6 +64,7 @@ class DocumentsScreen extends ConsumerStatefulWidget {
 class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   final _searchController = TextEditingController();
   Timer? _processingRefreshTimer;
+  final Map<String, String> _lastDocumentStatuses = {};
 
   String _selectedFilter = 'All documents';
   String _searchQuery = '';
@@ -361,7 +362,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         });
 
         try {
-          await ref
+          final uploadedDocument = await ref
               .read(documentRepositoryProvider)
               .uploadDocument(
                 workspaceId: workspaceId,
@@ -376,6 +377,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 },
               );
 
+          _lastDocumentStatuses['$workspaceId:${uploadedDocument.id}'] =
+              uploadedDocument.status.toLowerCase();
           successfulUploads++;
         } catch (error) {
           failedFiles.add('${file.name}: ${_uploadFailureReason(error)}');
@@ -487,6 +490,29 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   final workspaceDocuments = ref.watch(
                     documentsProvider(workspace.id),
                   );
+                  ref.listen(documentsProvider(workspace.id), (_, next) {
+                    final documents = next.asData?.value;
+                    if (documents == null || !mounted) return;
+
+                    for (final document in documents) {
+                      final key = '${workspace.id}:${document.id}';
+                      final status = document.status.toLowerCase();
+                      final previousStatus = _lastDocumentStatuses[key];
+                      if (previousStatus != null &&
+                          previousStatus != 'processed' &&
+                          status == 'processed') {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${document.filename} is processed and ready.',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                      _lastDocumentStatuses[key] = status;
+                    }
+                  });
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,6 +553,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                         const SizedBox(height: 20),
                       ],
                       workspaceDocuments.when(
+                        skipLoadingOnRefresh: true,
+                        skipLoadingOnReload: true,
                         loading: () => const Padding(
                           padding: EdgeInsets.all(80),
                           child: Center(child: CircularProgressIndicator()),
@@ -1233,7 +1261,17 @@ class _StatusPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          if (status == DocumentStatus.processing)
+            SizedBox(
+              width: 13,
+              height: 13,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.8,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            )
+          else
+            Icon(icon, size: 13, color: color),
           const SizedBox(width: 5),
           Text(
             label,

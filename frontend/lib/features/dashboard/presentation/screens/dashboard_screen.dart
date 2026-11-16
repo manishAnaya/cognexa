@@ -62,7 +62,8 @@ class DashboardScreen extends ConsumerWidget {
                   if (workspaces.isEmpty) {
                     return _EmptyWorkspaceState(
                       name: firstName ?? 'there',
-                      onOpenDocuments: onOpenDocuments,
+                      onCreateWorkspace: () =>
+                          _createDashboardWorkspace(context, ref),
                     );
                   }
 
@@ -93,6 +94,8 @@ class DashboardScreen extends ConsumerWidget {
                           }
                         },
                         onOpenDocuments: onOpenDocuments,
+                        onCreateWorkspace: () =>
+                            _createDashboardWorkspace(context, ref),
                       ),
                       const SizedBox(height: 24),
                       documentsAsync.when(
@@ -131,6 +134,90 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
+Future<void> _createDashboardWorkspace(
+  BuildContext context,
+  WidgetRef ref,
+) async {
+  final nameController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Create workspace'),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Workspace name',
+                hintText: 'e.g. Product Research',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            if (nameController.text.trim().isEmpty) return;
+            Navigator.pop(dialogContext, true);
+          },
+          child: const Text('Create'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed != true) {
+    nameController.dispose();
+    descriptionController.dispose();
+    return;
+  }
+
+  try {
+    final workspace = await ref
+        .read(workspaceRepositoryProvider)
+        .createWorkspace(
+          name: nameController.text.trim(),
+          description: descriptionController.text.trim().isEmpty
+              ? null
+              : descriptionController.text.trim(),
+        );
+    ref.read(selectedWorkspaceProvider.notifier).select(workspace);
+    ref.invalidate(workspacesProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Workspace created successfully.')),
+      );
+    }
+  } catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not create workspace: $error')),
+      );
+    }
+  } finally {
+    nameController.dispose();
+    descriptionController.dispose();
+  }
+}
+
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.firstName,
@@ -138,6 +225,7 @@ class _DashboardHeader extends StatelessWidget {
     required this.selectedWorkspace,
     required this.onWorkspaceChanged,
     required this.onOpenDocuments,
+    required this.onCreateWorkspace,
   });
 
   final String firstName;
@@ -145,6 +233,7 @@ class _DashboardHeader extends StatelessWidget {
   final WorkspaceModel selectedWorkspace;
   final ValueChanged<WorkspaceModel?> onWorkspaceChanged;
   final VoidCallback onOpenDocuments;
+  final VoidCallback onCreateWorkspace;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +262,11 @@ class _DashboardHeader extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
+            OutlinedButton.icon(
+              onPressed: onCreateWorkspace,
+              icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+              label: const Text('New workspace'),
+            ),
             SizedBox(
               width: 230,
               child: DropdownButtonFormField<WorkspaceModel>(
@@ -613,11 +707,11 @@ class _EmptyPanel extends StatelessWidget {
 class _EmptyWorkspaceState extends StatelessWidget {
   const _EmptyWorkspaceState({
     required this.name,
-    required this.onOpenDocuments,
+    required this.onCreateWorkspace,
   });
 
   final String name;
-  final VoidCallback onOpenDocuments;
+  final VoidCallback onCreateWorkspace;
 
   @override
   Widget build(BuildContext context) {
@@ -653,9 +747,9 @@ class _EmptyWorkspaceState extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               FilledButton.icon(
-                onPressed: onOpenDocuments,
+                onPressed: onCreateWorkspace,
                 icon: const Icon(Icons.add),
-                label: const Text('Open documents'),
+                label: const Text('Create workspace'),
               ),
             ],
           ),

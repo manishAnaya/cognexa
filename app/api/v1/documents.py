@@ -39,7 +39,6 @@ async def upload_documents(
         raise HTTPException(400, "Filename is required")
 
     content = await file.read()
-
     try:
         file_path, extension = save_document(file.filename, content, workspace_id)
     except ValueError as exc:
@@ -49,6 +48,7 @@ async def upload_documents(
         workspace_id=workspace_id,
         filename=file.filename,
         file_path=str(file_path),
+        file_content=content,
         file_type=extension,
         file_size=len(content),
         status="pending",

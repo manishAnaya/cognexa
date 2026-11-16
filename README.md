@@ -50,6 +50,13 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
 
 The backend permits localhost origins for development. For deployment, set `CORS_ALLOWED_ORIGINS` to a comma-separated list of frontend origins and use HTTPS.
 
+The Flutter web build does not read the backend `.env` file. Build the deployed frontend with the API URL compiled in (or use the production URL default in `ApiConstants`):
+
+```powershell
+Set-Location frontend
+flutter build web --release --dart-define=API_BASE_URL=https://cognexa-didn.onrender.com/api/v1
+```
+
 ### Document processing on Render Free
 
 Document uploads create a pending PostgreSQL job and return before indexing. A single worker thread starts with the FastAPI lifespan, claims jobs with PostgreSQL row locks, and uses leases and bounded retries to recover interrupted work. The thread stops during application shutdown; if an active job does not finish before shutdown, its lease expires and a later worker can reclaim it.

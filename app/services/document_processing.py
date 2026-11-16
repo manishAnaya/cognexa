@@ -10,7 +10,7 @@ def process_document(db: Session, document: Document):
         document.status = "processing"
         db.commit()
         # Extract text
-        pages = extract_document(document.file_path)
+        pages = extract_document(document.file_path, content=document.file_content)
         # Generate chunks
         chunks = split_documents(pages)
         if not chunks:

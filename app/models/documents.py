@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Uuid
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Uuid, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -30,6 +30,9 @@ class Document(Base):
         String(500),
         nullable=False
     )
+
+    # Keep the upload with its durable job so processing survives instance restarts.
+    file_content: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     file_type: Mapped[str] = mapped_column(
         String(20),

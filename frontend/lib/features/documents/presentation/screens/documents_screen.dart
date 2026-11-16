@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +34,7 @@ class DocumentItem {
   factory DocumentItem.fromModel(DocumentModel model) {
     final status = switch (model.status.toLowerCase()) {
       'processed' => DocumentStatus.processed,
-      'processing' => DocumentStatus.processing,
+      'processing' || 'pending' => DocumentStatus.processing,
       'failed' => DocumentStatus.failed,
       _ => DocumentStatus.uploaded,
     };
@@ -60,6 +63,7 @@ class DocumentsScreen extends ConsumerStatefulWidget {
 
 class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   final _searchController = TextEditingController();
+  Timer? _processingRefreshTimer;
 
   String _selectedFilter = 'All documents';
   String _searchQuery = '';
@@ -79,7 +83,24 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _processingRefreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      final workspace = ref.read(selectedWorkspaceProvider);
+      if (workspace == null) return;
+      final documents = ref.read(documentsProvider(workspace.id)).asData?.value;
+      if (documents != null &&
+          documents.any(
+            (document) => !document.isProcessed && !document.hasFailed,
+          )) {
+        ref.invalidate(documentsProvider(workspace.id));
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _processingRefreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -357,7 +378,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
           successfulUploads++;
         } catch (error) {
-          failedFiles.add(file.name);
+          failedFiles.add('${file.name}: ${_uploadFailureReason(error)}');
         }
       }
 
@@ -367,14 +388,15 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
       final message = failedFiles.isEmpty
           ? '$successfulUploads document(s) uploaded successfully.'
-          : '$successfulUploads uploaded, ${failedFiles.length} failed.';
+          : '$successfulUploads uploaded, ${failedFiles.length} failed. '
+                '${failedFiles.first}';
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
 
       if (failedFiles.isNotEmpty) {
-        debugPrint('Failed document uploads: ${failedFiles.join(', ')}');
+        debugPrint('Failed document uploads: ${failedFiles.join(' | ')}');
       }
     } finally {
       if (mounted) {
@@ -387,6 +409,33 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         });
       }
     }
+  }
+
+  String _uploadFailureReason(Object error) {
+    if (error is DioException) {
+      final response = error.response;
+      final body = response?.data;
+      final detail = body is Map
+          ? body['detail'] ?? body['message'] ?? body['error']
+          : null;
+
+      if (response?.statusCode != null) {
+        return 'HTTP ${response!.statusCode}: '
+            '${detail ?? error.message ?? 'Upload rejected'}';
+      }
+
+      return switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.connectionError =>
+          'Could not reach ${error.requestOptions.baseUrl} '
+              'from ${Uri.base.origin} (${error.type.name}). Check the frontend origin and CORS settings.',
+        _ => error.message ?? error.type.name,
+      };
+    }
+
+    return error.toString();
   }
 
   @override
